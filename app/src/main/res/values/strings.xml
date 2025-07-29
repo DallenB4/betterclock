@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">BetterClock</string>
+    <string name="toy_service_name">BetterClock</string>
+    <string name="toy_summary">Take a quick glance at the time, battery, or toggle DND</string>
 </resources>
