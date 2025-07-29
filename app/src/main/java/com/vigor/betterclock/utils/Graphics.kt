@@ -202,5 +202,61 @@ class Graphics {
             }
         }
 
+        fun minx(y: Int): Int {
+            if (y < 0 || y > 24) return -1
+            // We solve (x - 12)**2 + (y - 12)**2 <= (12.5)**2
+            // Smallest x that satisfies this is:
+            // x_min = |12 - sqrt(12.5**2 - (y-12)**2)|
+            val R: Double = 25.0/2.0
+            val C = 12.0;
+            val dy: Double = y.toDouble() - C
+            val dx = sqrt(R*R - dy*dy)
+            return ceil(C - dx).toInt()
+        }
+
+        fun fill_circle(i: Int, brightness: Int = 255): IntArray {
+            val arr = IntArray(25*25)
+            var sum: Int = ((489.0*i)/100).toInt() // 489 pixels on the matrix circle
+            var x_min: Int
+            var width: Int
+            for (y in 24 downTo 0) {
+                if (sum <= 0)
+                    break // No more pixels to fill
+                x_min = minx(y)
+                width = 25-x_min*2
+                sum -= width
+                // If we go past the sum, the entire row should not be filled
+                if (sum < 0)
+                    width += sum
+                // Fill width amount of pixels
+                for (x in 0..<width)
+                    arr[x_min + x + y*25] = brightness
+            }
+            return arr
+        }
+        fun fill(arr: IntArray, pos: Pair<Int, Int>, dimensions: Pair<Int, Int>, brightness: Int): IntArray {
+            for (y in 0..<dimensions.second) {
+                for (x in 0..<dimensions.first) {
+                    arr[x + pos.first + (y + pos.second)*25] = brightness
+                }
+            }
+            return arr
+        }
+        fun fill_bar(progress: Int, pos: Pair<Int, Int>, width: Int, colors: Pair<Int, Int> = Pair(255,0)): IntArray {
+            val arr = IntArray(25*25)
+            val filled_width = (width * progress)/100
+            for (x in pos.first..<(pos.first + width))
+                arr[x + pos.second*25] = if (pos.first + filled_width >= x) colors.first else colors.second
+            return arr
+        }
+        // We assume src always fit where we are writing inside dst and dimensions are correct
+        fun copy(src: IntArray, dst: IntArray, pos: Pair<Int, Int>, dimensions: Pair<Int, Int>, multiplier: Int = 1): IntArray {
+            for (y in 0..<dimensions.second) {
+                for (x in 0..<dimensions.first) {
+                    dst[x + pos.first + (y + pos.second)*25] = src[x + y * dimensions.first] * multiplier
+                }
+            }
+            return dst
+        }
     }
 }

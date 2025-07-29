@@ -5,6 +5,7 @@ import com.example.matrix.services.GlyphMatrixService
 import com.nothing.ketchum.GlyphMatrixFrame
 import com.nothing.ketchum.GlyphMatrixManager
 import com.nothing.ketchum.GlyphMatrixObject
+import com.vigor.betterclock.utils.Graphics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -44,6 +45,8 @@ class ToyService : GlyphMatrixService("BetterClock") {
 
         val frameBuilder = GlyphMatrixFrame.Builder()
             .addTop(clock)
+            .addMid(Graphics.copy(src=lightning, dst=IntArray(WIDTH*HEIGHT), pos=Pair(11, 1), dimensions=Pair(3, 7), multiplier=255))
+            .addLow(Graphics.fill_bar(60, pos=Pair(3, 18), width=19, colors=Pair(512, 40)))
 
         val frame = frameBuilder.build(this)
 
@@ -57,5 +60,14 @@ class ToyService : GlyphMatrixService("BetterClock") {
     private companion object {
         private const val WIDTH = 25
         private const val HEIGHT = 25
+        private val lightning = intArrayOf(
+            0, 0, 1,
+            0, 1, 0,
+            1, 0, 0,
+            0, 1, 0,
+            0, 0, 1,
+            0, 1, 0,
+            1, 0, 0
+        )
     }
 }
