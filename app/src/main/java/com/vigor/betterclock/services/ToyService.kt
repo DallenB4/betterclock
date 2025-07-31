@@ -37,6 +37,16 @@ class ToyService : GlyphMatrixService("BetterClock") {
     private var charge_animation_setting_enabled = false
     private var charge_icon_setting_enabled = false
 
+    private val settingsFilter = IntentFilter(ACTION_SETTINGS_UPDATE)
+    private val settings_receiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            unregister_receivers()
+            load_settings()
+            register_receivers()
+            refresh()
+        }
+    }
+
     private val batteryFilter = IntentFilter().apply {
         addAction(Intent.ACTION_BATTERY_CHANGED)
         addAction(Intent.ACTION_POWER_CONNECTED)
@@ -97,15 +107,8 @@ class ToyService : GlyphMatrixService("BetterClock") {
         battery_charging = p.second
         dnd = get_dnd(this)
 
-        val prefUtils = PrefUtils(this)
-        dnd_setting_enabled = prefUtils.dnd
-        charge_animation_setting_enabled = prefUtils.charge_animation
-        charge_icon_setting_enabled = prefUtils.charge_icon
-
-        registerReceiver(battery_receiver, batteryFilter, RECEIVER_EXPORTED)
-        registerReceiver(time_receiver, timeFilter, RECEIVER_EXPORTED)
-        if (dnd_setting_enabled)
-            registerReceiver(dnd_receiver, IntentFilter(NotificationManager.ACTION_INTERRUPTION_FILTER_CHANGED))
+        load_settings()
+        register_receivers()
 
         backgroundScope.launch {
             // We don't want to stop mid animation
@@ -129,6 +132,29 @@ class ToyService : GlyphMatrixService("BetterClock") {
             DndUtils.disableDoNotDisturb(this)
         else
             DndUtils.enableDoNotDisturb(this)
+    }
+
+    fun load_settings() {
+        val prefUtils = PrefUtils(this)
+        dnd_setting_enabled = prefUtils.dnd
+        charge_animation_setting_enabled = prefUtils.charge_animation
+        charge_icon_setting_enabled = prefUtils.charge_icon
+    }
+
+    fun register_receivers() {
+        registerReceiver(settings_receiver, settingsFilter, RECEIVER_EXPORTED)
+        registerReceiver(battery_receiver, batteryFilter, RECEIVER_EXPORTED)
+        registerReceiver(time_receiver, timeFilter, RECEIVER_EXPORTED)
+        if (dnd_setting_enabled)
+            registerReceiver(dnd_receiver, IntentFilter(NotificationManager.ACTION_INTERRUPTION_FILTER_CHANGED))
+    }
+
+    fun unregister_receivers() {
+        unregisterReceiver(settings_receiver)
+        unregisterReceiver(battery_receiver)
+        unregisterReceiver(time_receiver)
+        if (dnd_setting_enabled)
+            unregisterReceiver(dnd_receiver)
     }
 
     fun charge_animation() {
@@ -213,7 +239,7 @@ class ToyService : GlyphMatrixService("BetterClock") {
         val icons = IntArray(WIDTH*HEIGHT)
         if (charging && charge_icon_setting_enabled)
             Graphics.copy(src=lightning, dst=icons, pos=Pair(9, 20), dimensions=Pair(7, 3), multiplier=255)
-        if (dnd)
+        if (dnd && dnd_setting_enabled)
             Graphics.copy(src=dnd_icon, dst=icons, pos=Pair(9, 1), dimensions=Pair(7, 7), multiplier=255)
         var battery_bar = Graphics.fill_bar(battery_level, pos=Pair(3, 18), width=19, colors=Pair(512, 40))
         if (animate_percent <= 100 && charge_animation_setting_enabled) {
@@ -233,13 +259,11 @@ class ToyService : GlyphMatrixService("BetterClock") {
 
     override fun performOnServiceDisconnected(context: Context) {
         backgroundScope.cancel()
-        unregisterReceiver(battery_receiver)
-        unregisterReceiver(time_receiver)
-        unregisterReceiver(dnd_receiver)
+        unregister_receivers()
         handler.removeCallbacks(charge_animation_runnable)
     }
 
-    private companion object {
+    companion object {
         private const val WIDTH = 25
         private const val HEIGHT = 25
         private const val INTERVAL_MS = 10_000L
@@ -257,5 +281,6 @@ class ToyService : GlyphMatrixService("BetterClock") {
             0, 1, 0, 0, 0, 1, 0,
             0, 0, 1, 1, 1, 0, 0,
         )
+        val ACTION_SETTINGS_UPDATE = "com.vigor.betterclock.services.ToyService.ACTION_SETTINGS_UPDATE"
     }
 }
