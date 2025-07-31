@@ -1,4 +1,4 @@
-package com.example.matrix.services
+package com.vigor.betterclock.services
 
 import android.app.Service
 import android.content.ComponentName
@@ -28,6 +28,7 @@ abstract class GlyphMatrixService(private val tag: String) : Service() {
                                     GlyphToy.EVENT_ACTION_DOWN -> onTouchPointPressed()
                                     GlyphToy.EVENT_ACTION_UP -> onTouchPointReleased()
                                     GlyphToy.EVENT_CHANGE -> onTouchPointLongPress()
+                                    GlyphToy.EVENT_AOD -> onAODEvent(glyphMatrixManager)
                                 }
                             }
                         }
@@ -93,6 +94,7 @@ abstract class GlyphMatrixService(private val tag: String) : Service() {
     open fun onTouchPointPressed() {}
     open fun onTouchPointLongPress() {}
     open fun onTouchPointReleased() {}
+    open fun onAODEvent(glyphMatrixManager: GlyphMatrixManager?) {}
 
     private companion object {
         private val LOG_TAG = GlyphMatrixService::class.java.simpleName
