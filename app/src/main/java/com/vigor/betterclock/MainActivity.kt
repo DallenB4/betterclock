@@ -9,6 +9,7 @@ import com.vigor.betterclock.ui.screens.MainScreen
 import com.vigor.betterclock.ui.viewmodels.MainViewModel
 import com.vigor.betterclock.ui.theme.BetterClockTheme
 import com.vigor.betterclock.utils.DndUtils
+import com.vigor.betterclock.utils.PrefUtils
 import kotlin.getValue
 
 class MainActivity : ComponentActivity() {
@@ -21,6 +22,12 @@ class MainActivity : ComponentActivity() {
                 MainScreen(viewmodel)
             }
         }
-        DndUtils.grantPermissions(this)
+        viewmodel.update_settings_data(this)
+        viewmodel.check_permissions = {
+            DndUtils.grantPermissions(this)
+        }
+        viewmodel.push_setting = { v, nv ->
+            PrefUtils(this).save(v, nv)
+        }
     }
 }

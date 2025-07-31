@@ -7,5 +7,8 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 data class MainUiState(
     val snackbarHostState: SnackbarHostState = SnackbarHostState(),
     val arr: SnapshotStateList<Pair<Long, String>> = mutableStateListOf(),
-    val text: String? = null
+    val text: String? = null,
+    val settings_dnd: Boolean = false,
+    val settings_charge_animation: Boolean = false,
+    val settings_charge_icon: Boolean = false
 )
