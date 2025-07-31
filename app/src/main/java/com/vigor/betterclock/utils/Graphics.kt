@@ -61,6 +61,17 @@ class Graphics {
         }
 
         /**
+         * Sets a single pixel if the (x,y) coordinate lies inside the canvas bounds.
+         */
+        fun set_pixel(canvas: IntArray, width: Int, height: Int,
+                     x: Int, y: Int, brightness: Int = 0): IntArray {
+            if (x in 0 until width && y in 0 until height) {
+                canvas[y * width + x] = brightness
+            }
+            return canvas
+        }
+
+        /**
          * Draws a filled (solid) circle with centre (cx,cy) and given radius.
          *
          * @param canvas  Mutable 1-D IntArray holding the pixels (row-major order).
