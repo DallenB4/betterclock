@@ -13,6 +13,7 @@ import com.nothing.ketchum.GlyphMatrixManager
 import com.nothing.ketchum.GlyphMatrixObject
 import com.vigor.betterclock.utils.DndUtils
 import com.vigor.betterclock.utils.Graphics
+import com.vigor.betterclock.utils.PrefUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -32,6 +33,9 @@ class ToyService : GlyphMatrixService("BetterClock") {
     private var battery_charging: Boolean = false
     private var animate_percent: Int = 110
     private var dnd = false
+    private var dnd_setting_enabled = false
+    private var charge_animation_setting_enabled = false
+    private var charge_icon_setting_enabled = false
 
     private val batteryFilter = IntentFilter().apply {
         addAction(Intent.ACTION_BATTERY_CHANGED)
@@ -53,11 +57,13 @@ class ToyService : GlyphMatrixService("BetterClock") {
                 BatteryManager.BATTERY_STATUS_FULL -> true
                 else -> false
             }
-            if (battery_charging && !handler.hasCallbacks(charge_animation_runnable)) {
-                handler.removeCallbacks(charge_animation_runnable)
-                handler.post(charge_animation_runnable)
-            } else if (!battery_charging) {
-                handler.removeCallbacks(charge_animation_runnable)
+            if (charge_animation_setting_enabled) {
+                if (battery_charging && !handler.hasCallbacks(charge_animation_runnable)) {
+                    handler.removeCallbacks(charge_animation_runnable)
+                    handler.post(charge_animation_runnable)
+                } else if (!battery_charging) {
+                    handler.removeCallbacks(charge_animation_runnable)
+                }
             }
             refresh()
         }
@@ -85,14 +91,21 @@ class ToyService : GlyphMatrixService("BetterClock") {
         context: Context,
         glyphMatrixManager: GlyphMatrixManager
     ) {
-        registerReceiver(battery_receiver, batteryFilter, RECEIVER_EXPORTED)
-        registerReceiver(time_receiver, timeFilter, RECEIVER_EXPORTED)
-        registerReceiver(dnd_receiver, IntentFilter(NotificationManager.ACTION_INTERRUPTION_FILTER_CHANGED))
 
         val p = get_battery_info()
         battery_level = p.first
         battery_charging = p.second
         dnd = get_dnd(this)
+
+        val prefUtils = PrefUtils(this)
+        dnd_setting_enabled = prefUtils.dnd
+        charge_animation_setting_enabled = prefUtils.charge_animation
+        charge_icon_setting_enabled = prefUtils.charge_icon
+
+        registerReceiver(battery_receiver, batteryFilter, RECEIVER_EXPORTED)
+        registerReceiver(time_receiver, timeFilter, RECEIVER_EXPORTED)
+        if (dnd_setting_enabled)
+            registerReceiver(dnd_receiver, IntentFilter(NotificationManager.ACTION_INTERRUPTION_FILTER_CHANGED))
 
         backgroundScope.launch {
             // We don't want to stop mid animation
@@ -110,6 +123,8 @@ class ToyService : GlyphMatrixService("BetterClock") {
     }
 
     override fun onTouchPointLongPress() {
+        if (!dnd_setting_enabled)
+            return
         if (dnd)
             DndUtils.disableDoNotDisturb(this)
         else
@@ -196,12 +211,12 @@ class ToyService : GlyphMatrixService("BetterClock") {
 
         val clock = clock_builder.build()
         val icons = IntArray(WIDTH*HEIGHT)
-        if (charging)
+        if (charging && charge_icon_setting_enabled)
             Graphics.copy(src=lightning, dst=icons, pos=Pair(9, 20), dimensions=Pair(7, 3), multiplier=255)
         if (dnd)
             Graphics.copy(src=dnd_icon, dst=icons, pos=Pair(9, 1), dimensions=Pair(7, 7), multiplier=255)
         var battery_bar = Graphics.fill_bar(battery_level, pos=Pair(3, 18), width=19, colors=Pair(512, 40))
-        if (animate_percent <= 100) {
+        if (animate_percent <= 100 && charge_animation_setting_enabled) {
             val x_pos = 3 + ((19 * battery_level * animate_percent) / 10000)
             battery_bar = Graphics.set_pixel(battery_bar, WIDTH, HEIGHT, x_pos, 18, 1024)
         }
