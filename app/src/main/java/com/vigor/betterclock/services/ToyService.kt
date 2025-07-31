@@ -1,5 +1,6 @@
 package com.vigor.betterclock.services
 
+import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -10,6 +11,7 @@ import android.os.Looper
 import com.nothing.ketchum.GlyphMatrixFrame
 import com.nothing.ketchum.GlyphMatrixManager
 import com.nothing.ketchum.GlyphMatrixObject
+import com.vigor.betterclock.utils.DndUtils
 import com.vigor.betterclock.utils.Graphics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,6 +31,7 @@ class ToyService : GlyphMatrixService("BetterClock") {
     private var battery_level: Int = 0
     private var battery_charging: Boolean = false
     private var animate_percent: Int = 110
+    private var dnd = false
 
     private val batteryFilter = IntentFilter().apply {
         addAction(Intent.ACTION_BATTERY_CHANGED)
@@ -69,16 +72,27 @@ class ToyService : GlyphMatrixService("BetterClock") {
         }
     }
 
+    private val dnd_receiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == NotificationManager.ACTION_INTERRUPTION_FILTER_CHANGED) {
+                dnd = get_dnd(context)
+                refresh()
+            }
+        }
+    }
+
     override fun performOnServiceConnected(
         context: Context,
         glyphMatrixManager: GlyphMatrixManager
     ) {
         registerReceiver(battery_receiver, batteryFilter, RECEIVER_EXPORTED)
         registerReceiver(time_receiver, timeFilter, RECEIVER_EXPORTED)
+        registerReceiver(dnd_receiver, IntentFilter(NotificationManager.ACTION_INTERRUPTION_FILTER_CHANGED))
 
         val p = get_battery_info()
         battery_level = p.first
         battery_charging = p.second
+        dnd = get_dnd(this)
 
         backgroundScope.launch {
             // We don't want to stop mid animation
@@ -93,6 +107,13 @@ class ToyService : GlyphMatrixService("BetterClock") {
                 delay(100)
             }
         }
+    }
+
+    override fun onTouchPointLongPress() {
+        if (dnd)
+            DndUtils.disableDoNotDisturb(this)
+        else
+            DndUtils.enableDoNotDisturb(this)
     }
 
     fun charge_animation() {
@@ -160,6 +181,11 @@ class ToyService : GlyphMatrixService("BetterClock") {
         }
     }
 
+    fun get_dnd(context: Context): Boolean {
+        val nm = context.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        return nm.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL
+    }
+
     fun frame(time: String, battery_level: Int, charging: Boolean): IntArray? {
         val clock_builder = GlyphMatrixObject.Builder()
             .setText(time)
@@ -169,10 +195,11 @@ class ToyService : GlyphMatrixService("BetterClock") {
             .setBrightness(255)
 
         val clock = clock_builder.build()
-        val charge_icon = if (charging)
-            Graphics.copy(src=lightning, dst=IntArray(WIDTH*HEIGHT), pos=Pair(9, 20), dimensions=Pair(7, 3), multiplier=255)
-        else
-            IntArray(WIDTH*HEIGHT)
+        val icons = IntArray(WIDTH*HEIGHT)
+        if (charging)
+            Graphics.copy(src=lightning, dst=icons, pos=Pair(9, 20), dimensions=Pair(7, 3), multiplier=255)
+        if (dnd)
+            Graphics.copy(src=dnd_icon, dst=icons, pos=Pair(9, 1), dimensions=Pair(7, 7), multiplier=255)
         var battery_bar = Graphics.fill_bar(battery_level, pos=Pair(3, 18), width=19, colors=Pair(512, 40))
         if (animate_percent <= 100) {
             val x_pos = 3 + ((19 * battery_level * animate_percent) / 10000)
@@ -181,7 +208,7 @@ class ToyService : GlyphMatrixService("BetterClock") {
 
         val frameBuilder = GlyphMatrixFrame.Builder()
             .addTop(clock)
-            .addMid(charge_icon)
+            .addMid(icons)
             .addLow(battery_bar)
 
         val frame = frameBuilder.build(this)
@@ -193,6 +220,7 @@ class ToyService : GlyphMatrixService("BetterClock") {
         backgroundScope.cancel()
         unregisterReceiver(battery_receiver)
         unregisterReceiver(time_receiver)
+        unregisterReceiver(dnd_receiver)
         handler.removeCallbacks(charge_animation_runnable)
     }
 
@@ -204,6 +232,15 @@ class ToyService : GlyphMatrixService("BetterClock") {
             1, 0, 0, 0, 1, 0, 0,
             0, 1, 0, 1, 0, 1, 0,
             0, 0, 1, 0, 0, 0, 1,
+        )
+        private val dnd_icon = intArrayOf(
+            0, 0, 1, 1, 1, 0, 0,
+            0, 1, 0, 0, 0, 1, 0,
+            1, 0, 0, 0, 0, 0, 1,
+            1, 0, 1, 1, 1, 0, 1,
+            1, 0, 0, 0, 0, 0, 1,
+            0, 1, 0, 0, 0, 1, 0,
+            0, 0, 1, 1, 1, 0, 0,
         )
     }
 }

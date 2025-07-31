@@ -8,6 +8,7 @@ import androidx.activity.viewModels
 import com.vigor.betterclock.ui.screens.MainScreen
 import com.vigor.betterclock.ui.viewmodels.MainViewModel
 import com.vigor.betterclock.ui.theme.BetterClockTheme
+import com.vigor.betterclock.utils.DndUtils
 import kotlin.getValue
 
 class MainActivity : ComponentActivity() {
@@ -20,5 +21,6 @@ class MainActivity : ComponentActivity() {
                 MainScreen(viewmodel)
             }
         }
+        DndUtils.grantPermissions(this)
     }
 }
