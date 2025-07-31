@@ -1,5 +1,6 @@
 package com.vigor.betterclock.services
 
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -23,16 +24,57 @@ class ToyService : GlyphMatrixService("BetterClock") {
     private val backgroundScope = CoroutineScope(Dispatchers.IO)
     private val uiScope = CoroutineScope(Dispatchers.Main)
     private var aod = false
+    private var battery_level: Int = 0
+    private var battery_charging: Boolean = false
+
+    private val batteryFilter = IntentFilter().apply {
+        addAction(Intent.ACTION_BATTERY_CHANGED)
+        addAction(Intent.ACTION_POWER_CONNECTED)
+        addAction(Intent.ACTION_POWER_DISCONNECTED)
+    }
+    private val battery_receiver = object : BroadcastReceiver() {
+        override fun onReceive(ctx: Context, intent: Intent) {
+            val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+            val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+            battery_level = if (level >= 0 && scale > 0) {
+                (level * 100) / scale
+            } else {
+                0
+            }
+            val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
+            battery_charging = when (status) {
+                BatteryManager.BATTERY_STATUS_CHARGING,
+                BatteryManager.BATTERY_STATUS_FULL -> true
+                else -> false
+            }
+            refresh()
+        }
+    }
+
+    private val timeFilter = IntentFilter(Intent.ACTION_TIME_TICK)
+    private val time_receiver = object : BroadcastReceiver() {
+        override fun onReceive(ctx: Context, intent: Intent) {
+            if (intent.action == Intent.ACTION_TIME_TICK) {
+                if (aod) refresh()
+            }
+        }
+    }
 
     override fun performOnServiceConnected(
         context: Context,
         glyphMatrixManager: GlyphMatrixManager
     ) {
+        registerReceiver(battery_receiver, batteryFilter, RECEIVER_EXPORTED)
+        registerReceiver(time_receiver, timeFilter, RECEIVER_EXPORTED)
+
+        val p = get_battery_info()
+        battery_level = p.first
+        battery_charging = p.second
+
         backgroundScope.launch {
             while (isActive && !aod) {
                 uiScope.launch {
-                    val (battery_level, battery_charging) = get_battery_info()
-                    glyphMatrixManager.setMatrixFrame(frame(time(blink=false), battery_level, battery_charging))
+                    refresh()
                 }
                 // wait a bit
                 delay(100)
@@ -42,10 +84,12 @@ class ToyService : GlyphMatrixService("BetterClock") {
 
     override fun onAODEvent(glyphMatrixManager: GlyphMatrixManager?) {
         aod = true
+    }
+
+    fun refresh() {
         backgroundScope.launch {
             uiScope.launch {
-                val (battery_level, _) = get_battery_info()
-                glyphMatrixManager?.setMatrixFrame(frame(time(blink=false), battery_level, false))
+                glyphMatrixManager?.setMatrixFrame(frame(time(blink=!aod), battery_level, battery_charging))
             }
         }
     }
@@ -105,6 +149,8 @@ class ToyService : GlyphMatrixService("BetterClock") {
 
     override fun performOnServiceDisconnected(context: Context) {
         backgroundScope.cancel()
+        unregisterReceiver(battery_receiver)
+        unregisterReceiver(time_receiver)
     }
 
     private companion object {
