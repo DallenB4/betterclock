@@ -19,13 +19,13 @@ class MainViewModel : ViewModel() {
     fun update_settings_data(context: Context) {
         val prefUtils = PrefUtils(context)
         _uiState.update { state ->
-            state.copy(settings_dnd=prefUtils.dnd, settings_charge_animation=prefUtils.charge_animation, settings_charge_icon=prefUtils.charge_icon)
+            state.copy(settings_dnd=prefUtils.dnd, settings_charge_animation=prefUtils.charge_animation, settings_charge_icon=prefUtils.charge_icon, settings_interval_s=prefUtils.interval_s.toString())
         }
     }
 
-    fun _push_setting(v: String) {
+    fun _push_setting(k: String) {
         var nv: Boolean? = null
-        when (v) {
+        when (k) {
             "dnd" -> {
                 if (!check_permissions())
                     return
@@ -48,9 +48,22 @@ class MainViewModel : ViewModel() {
             }
             else -> return
         }
-        nv?.let { push_setting(v, it) }
+        nv?.let { push_setting(k, it) }
+    }
+
+    fun _push_setting(k: String, v: String) {
+        when (k) {
+            "interval_s" -> {
+                _uiState.update { state ->
+                    state.copy(settings_interval_s=v)
+                }
+            }
+            else -> return
+        }
+        v.toIntOrNull()?.let { push_int_setting(k, it) }
     }
 
     var check_permissions: () -> Boolean = { false }
-    var push_setting: (String, Boolean) -> Unit = {v,nv -> }
+    var push_setting: (String, Boolean) -> Unit = {k,v -> }
+    var push_int_setting: (String, Int) -> Unit = {k,v -> }
 }

@@ -16,6 +16,13 @@ class PrefUtils(context: Context) {
         }
     }
 
+    fun save(key: String, value: Int) {
+        sharedPref ?: return
+        sharedPref.edit {
+            putInt(key, value)
+        }
+    }
+
     var dnd: Boolean
         get() {
             sharedPref ?: throw Exception()
@@ -46,6 +53,18 @@ class PrefUtils(context: Context) {
         set(value) {
             sharedPref.edit {
                 putBoolean("charge_animation", value)
+            }
+        }
+
+
+    var interval_s: Int
+        get() {
+            sharedPref ?: throw Exception()
+            return sharedPref.getInt("interval_s", 1)
+        }
+        set(value) {
+            sharedPref.edit {
+                putInt("interval_s", value)
             }
         }
 }

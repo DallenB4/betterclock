@@ -28,8 +28,12 @@ class MainActivity : ComponentActivity() {
         viewmodel.check_permissions = {
             DndUtils.grantPermissions(this)
         }
-        viewmodel.push_setting = { v, nv ->
-            PrefUtils(this).save(v, nv)
+        viewmodel.push_setting = { k, nv ->
+            PrefUtils(this).save(k, nv)
+            sendBroadcast(Intent(ToyService.ACTION_SETTINGS_UPDATE))
+        }
+        viewmodel.push_int_setting = { k, v ->
+            PrefUtils(this).save(k, v)
             sendBroadcast(Intent(ToyService.ACTION_SETTINGS_UPDATE))
         }
     }

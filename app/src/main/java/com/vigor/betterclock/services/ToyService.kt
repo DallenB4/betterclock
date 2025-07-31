@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.max
 
 class ToyService : GlyphMatrixService("BetterClock") {
 
@@ -36,6 +37,7 @@ class ToyService : GlyphMatrixService("BetterClock") {
     private var dnd_setting_enabled = false
     private var charge_animation_setting_enabled = false
     private var charge_icon_setting_enabled = false
+    private var interval_ms = 0L
 
     private val settingsFilter = IntentFilter(ACTION_SETTINGS_UPDATE)
     private val settings_receiver = object : BroadcastReceiver() {
@@ -43,6 +45,7 @@ class ToyService : GlyphMatrixService("BetterClock") {
             unregister_receivers()
             load_settings()
             register_receivers()
+            start_stop_animation()
             refresh()
         }
     }
@@ -67,14 +70,7 @@ class ToyService : GlyphMatrixService("BetterClock") {
                 BatteryManager.BATTERY_STATUS_FULL -> true
                 else -> false
             }
-            if (charge_animation_setting_enabled) {
-                if (battery_charging && !handler.hasCallbacks(charge_animation_runnable)) {
-                    handler.removeCallbacks(charge_animation_runnable)
-                    handler.post(charge_animation_runnable)
-                } else if (!battery_charging) {
-                    handler.removeCallbacks(charge_animation_runnable)
-                }
-            }
+            start_stop_animation()
             refresh()
         }
     }
@@ -139,6 +135,7 @@ class ToyService : GlyphMatrixService("BetterClock") {
         dnd_setting_enabled = prefUtils.dnd
         charge_animation_setting_enabled = prefUtils.charge_animation
         charge_icon_setting_enabled = prefUtils.charge_icon
+        interval_ms = prefUtils.interval_s * 1000L
     }
 
     fun register_receivers() {
@@ -155,6 +152,18 @@ class ToyService : GlyphMatrixService("BetterClock") {
         unregisterReceiver(time_receiver)
         if (dnd_setting_enabled)
             unregisterReceiver(dnd_receiver)
+        handler.removeCallbacks(charge_animation_runnable)
+    }
+
+    fun start_stop_animation() {
+        if (charge_animation_setting_enabled) {
+            if (battery_charging && !handler.hasCallbacks(charge_animation_runnable)) {
+                handler.removeCallbacks(charge_animation_runnable)
+                handler.post(charge_animation_runnable)
+            } else if (!battery_charging) {
+                handler.removeCallbacks(charge_animation_runnable)
+            }
+        }
     }
 
     fun charge_animation() {
@@ -218,7 +227,7 @@ class ToyService : GlyphMatrixService("BetterClock") {
         override fun run() {
             charge_animation()
             // re-schedule
-            handler.postDelayed(this, INTERVAL_MS)
+            handler.postDelayed(this, max(interval_ms, MIN_INTERVAL_MS))
         }
     }
 
@@ -260,13 +269,12 @@ class ToyService : GlyphMatrixService("BetterClock") {
     override fun performOnServiceDisconnected(context: Context) {
         backgroundScope.cancel()
         unregister_receivers()
-        handler.removeCallbacks(charge_animation_runnable)
     }
 
     companion object {
         private const val WIDTH = 25
         private const val HEIGHT = 25
-        private const val INTERVAL_MS = 10_000L
+        private const val MIN_INTERVAL_MS = 1_000L
         private val lightning = intArrayOf(
             1, 0, 0, 0, 1, 0, 0,
             0, 1, 0, 1, 0, 1, 0,

@@ -10,5 +10,6 @@ data class MainUiState(
     val text: String? = null,
     val settings_dnd: Boolean = false,
     val settings_charge_animation: Boolean = false,
-    val settings_charge_icon: Boolean = false
+    val settings_charge_icon: Boolean = false,
+    val settings_interval_s: String = "1"
 )
