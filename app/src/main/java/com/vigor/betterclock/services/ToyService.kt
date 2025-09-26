@@ -33,7 +33,7 @@ class ToyService : GlyphMatrixService("BetterClock") {
     private var battery_level: Int = 0
     private var battery_charging: Boolean = false
     private var animate_percent: Int = 110
-    private var hour_mode_24: Boolean = false
+    private var clock_hour_24: Boolean = false
     private var dnd = false
     private var dnd_setting_enabled = false
     private var charge_animation_setting_enabled = false
@@ -133,7 +133,7 @@ class ToyService : GlyphMatrixService("BetterClock") {
 
     fun load_settings() {
         val prefUtils = PrefUtils(this)
-        hour_mode_24 = prefUtils.clock_hour_24
+        clock_hour_24 = prefUtils.clock_hour_24
         dnd_setting_enabled = prefUtils.dnd
         charge_animation_setting_enabled = prefUtils.charge_animation
         charge_icon_setting_enabled = prefUtils.charge_icon
@@ -199,7 +199,7 @@ class ToyService : GlyphMatrixService("BetterClock") {
     fun time(blink: Boolean): String {
         val ms = System.currentTimeMillis()
         val date = Date()
-        val formatter = SimpleDateFormat("${if (hour_mode_24) "HH" else "hh"}${if ((ms/1000).toInt()%2 == 0 || !blink) ":" else " "}mm", Locale.getDefault())
+        val formatter = SimpleDateFormat("${if (clock_hour_24) "HH" else "hh"}${if ((ms/1000).toInt()%2 == 0 || !blink) ":" else " "}mm", Locale.getDefault())
         return formatter.format(date)
     }
 

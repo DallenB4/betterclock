@@ -19,7 +19,7 @@ class MainViewModel : ViewModel() {
     fun update_settings_data(context: Context) {
         val prefUtils = PrefUtils(context)
         _uiState.update { state ->
-            state.copy(settings_dnd=prefUtils.dnd, settings_charge_animation=prefUtils.charge_animation, settings_charge_icon=prefUtils.charge_icon, settings_interval_s=prefUtils.interval_s.toString())
+            state.copy(settings_clock_hour_24=prefUtils.clock_hour_24, settings_dnd=prefUtils.dnd, settings_charge_animation=prefUtils.charge_animation, settings_charge_icon=prefUtils.charge_icon, settings_interval_s=prefUtils.interval_s.toString())
         }
     }
 
