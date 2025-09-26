@@ -23,6 +23,17 @@ class PrefUtils(context: Context) {
         }
     }
 
+    var clock_hour_24: Boolean
+        get() {
+            sharedPref ?: throw Exception()
+            return sharedPref.getBoolean("clock_hour_24", true)
+        }
+        set(value) {
+            sharedPref.edit {
+                putBoolean("clock_hour_24", value)
+            }
+        }
+
     var dnd: Boolean
         get() {
             sharedPref ?: throw Exception()

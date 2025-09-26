@@ -26,6 +26,12 @@ class MainViewModel : ViewModel() {
     fun _push_setting(k: String) {
         var nv: Boolean? = null
         when (k) {
+            "clock_hour_24" -> {
+                _uiState.update { state ->
+                    nv = !state.settings_clock_hour_24
+                    state.copy(settings_clock_hour_24=nv)
+                }
+            }
             "dnd" -> {
                 if (!check_permissions())
                     return

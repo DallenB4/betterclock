@@ -44,6 +44,12 @@ fun MainScreen(viewmodel: MainViewModel = viewModel()) {
             verticalArrangement = Arrangement.Top
         ) {
             SettingRow(
+                label = "24 Hour Mode",
+                checked = state.settings_clock_hour_24,
+                onCheckedChange = { viewmodel._push_setting("clock_hour_24")}
+            )
+            HorizontalDivider()
+            SettingRow(
                 label = "Do Not Disturb function",
                 checked = state.settings_dnd,
                 onCheckedChange = { viewmodel._push_setting("dnd") }
