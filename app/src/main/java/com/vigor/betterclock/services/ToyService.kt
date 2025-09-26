@@ -242,7 +242,7 @@ class ToyService : GlyphMatrixService("BetterClock") {
         val clock_builder = GlyphMatrixObject.Builder()
             .setText(time)
             .setTextStyle("tall")
-            .setPosition(2, 9)
+            .setPosition(if (time.startsWith('1')) 1 else 2, 9)
             .setScale(100)
             .setBrightness(255)
 
